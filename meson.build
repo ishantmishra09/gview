@@ -3,20 +3,12 @@ project(
   'c',
   version: '0.1.0',
   default_options: [
-    'warning_level=3',
-    'c_std=c17'
-  ]
+    'c_std=c11',
+    'warning_level=2',
+    'buildtype=debugoptimized',
+  ],
 )
 
-gtk = dependency('gtk4')
+gtk4_dep = dependency('gtk4', version: '>=4.6')
 
-sources = [
-  'src/main.c'
-]
-
-executable(
-  'gview',
-  sources,
-  dependencies: gtk,
-  install: true
-)
+subdir('src')

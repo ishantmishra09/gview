@@ -1,4 +1,6 @@
 build/
-bin/
-
+builddir/
+*.o
+*.a
 .cache/
+compile_commands.json
