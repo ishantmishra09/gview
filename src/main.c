@@ -8,6 +8,7 @@
 #define WINDOW_TITLE "gview"
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
+#define ZOOM_STEP 1.1f
 
 int main(int argc, char *argv[]) {
 
@@ -85,9 +86,32 @@ int main(int argc, char *argv[]) {
         break;
 
       case SDL_KEYDOWN:
-        if (event.key.keysym.sym == SDLK_ESCAPE)
+        switch (event.key.keysym.sym) {
+
+        case SDLK_ESCAPE:
+        case SDLK_q:
           running = false;
+          break;
+
+        case SDLK_PLUS:
+        case SDLK_EQUALS:
+        case SDLK_KP_PLUS:
+          view_zoom(&vs, ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+          break;
+
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS:
+          view_zoom(&vs, 1.0f / ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+          break;
+        }
         break;
+
+      case SDL_MOUSEWHEEL: {
+        if (event.wheel.y > 0)
+          view_zoom(&vs, ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+        else if (event.wheel.y < 0)
+          view_zoom(&vs, 1.0f / ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+      } break;
       }
     }
 
