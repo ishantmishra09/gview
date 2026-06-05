@@ -1,7 +1,9 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_render.h>
 #include <stdbool.h>
 #include <stdio.h>
+
+#include "image.h"
+#include "viewer.h"
 
 #define WINDOW_TITLE "gview"
 #define WINDOW_WIDTH 800
@@ -9,7 +11,12 @@
 
 int main(int argc, char *argv[]) {
 
-  (void)argc;
+  if (argc < 2) {
+
+    fprintf(stderr, "Usage: gview <image_path>\n");
+    return 1;
+  }
+
   (void)argv;
 
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -38,6 +45,23 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  Image *img = image_load(renderer, argv[1]);
+  if (!img) {
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 1;
+  }
+
+  /* Set window title to filename */
+  char title[512];
+  snprintf(title, sizeof(title), "gview - %s", argv[1]);
+  SDL_SetWindowTitle(window, title);
+
+  ViewState vs = {.win_w = WINDOW_WIDTH, .win_h = WINDOW_HEIGHT};
+  view_fit(&vs, img);
+
   bool running = true;
   SDL_Event event;
 
@@ -51,6 +75,15 @@ int main(int argc, char *argv[]) {
         running = false;
         break;
 
+      case SDL_WINDOWEVENT:
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+
+          vs.win_w = event.window.data1;
+          vs.win_h = event.window.data2;
+          view_fit(&vs, img);
+        }
+        break;
+
       case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_ESCAPE)
           running = false;
@@ -62,9 +95,11 @@ int main(int argc, char *argv[]) {
                            255); /* dark grey background */
     SDL_RenderClear(renderer);
 
+    view_render(renderer, img, &vs);
     SDL_RenderPresent(renderer);
   }
 
+  image_free(img);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();

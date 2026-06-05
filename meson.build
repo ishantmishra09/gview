@@ -8,13 +8,19 @@ project(
   ],
 )
 
+cc = meson.get_compiler('c')
+
 sdl2_dep = dependency('sdl2')
+m_dep    = cc.find_library('m', required: false)
 
 executable(
   'gview',
   sources: [
     'src/main.c',
+    'src/image.c',
+    'src/viewer.c',
   ],
-  dependencies: [sdl2_dep],
+  include_directories: include_directories('vendor'),
+  dependencies: [sdl2_dep, m_dep],
   install: true,
 )
