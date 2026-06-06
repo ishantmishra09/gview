@@ -11,16 +11,13 @@ project(
 cc = meson.get_compiler('c')
 
 sdl2_dep = dependency('sdl2')
-m_dep    = cc.find_library('m', required: false)
+nfd_dep = dependency('nfd')
+m_dep = cc.find_library('m', required: false)
 
 executable(
   'gview',
-  sources: [
-    'src/main.c',
-    'src/image.c',
-    'src/viewer.c',
-  ],
+  sources: ['src/main.c', 'src/image.c', 'src/viewer.c', 'src/nfd_g.c'],
   include_directories: include_directories('vendor'),
-  dependencies: [sdl2_dep, m_dep],
+  dependencies: [sdl2_dep, m_dep, nfd_dep],
   install: true,
 )
