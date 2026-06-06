@@ -1,8 +1,11 @@
 #include <SDL2/SDL.h>
+#include <nfd.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "image.h"
+#include "nfd_g.h"
 #include "viewer.h"
 
 #define WINDOW_TITLE "gview"
@@ -12,17 +15,15 @@
 
 int main(int argc, char *argv[]) {
 
-  if (argc < 2) {
-
-    fprintf(stderr, "Usage: gview <image_path>\n");
-    return 1;
-  }
-
-  (void)argv;
-
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 
     fprintf(stderr, "SDL_Init error: %s\n", SDL_GetError());
+    return 1;
+  }
+
+  if (NFD_Init() != NFD_OKAY) {
+
+    fprintf(stderr, "NFD_Init error: %s\n", NFD_GetError());
     return 1;
   }
 
@@ -46,22 +47,51 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  Image *img = image_load(renderer, argv[1]);
-  if (!img) {
+  /* Initial Image */
+  Image *img = NULL;
+  ViewState vs = {.win_w = WINDOW_WIDTH, .win_h = WINDOW_HEIGHT};
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return 1;
+  if (argc >= 2) {
+
+    img = image_load(renderer, argv[1]);
+    if (img) {
+
+      char title[512];
+      snprintf(title, sizeof(title), "gview - %s", argv[1]);
+      SDL_SetWindowTitle(window, title);
+      view_fit(&vs, img);
+    }
   }
 
-  /* Set window title to filename */
-  char title[512];
-  snprintf(title, sizeof(title), "gview - %s", argv[1]);
-  SDL_SetWindowTitle(window, title);
+  if (!img) {
 
-  ViewState vs = {.win_w = WINDOW_WIDTH, .win_h = WINDOW_HEIGHT};
-  view_fit(&vs, img);
+    nfdchar_t *path = open_dialog();
+    if (path) {
+
+      img = image_load(renderer, path);
+      if (img) {
+
+        char *filename = strrchr(path, '/');
+        filename++;
+
+        char title[512];
+        snprintf(title, sizeof(title), "gview - %s", filename);
+        SDL_SetWindowTitle(window, title);
+        view_fit(&vs, img);
+      }
+
+      NFD_FreePathU8(path);
+    }
+
+    if (!img) {
+
+      SDL_DestroyRenderer(renderer);
+      SDL_DestroyWindow(window);
+      NFD_Quit();
+      SDL_Quit();
+      return 0;
+    }
+  }
 
   SDL_Cursor *cursor_arrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
   SDL_Cursor *cursor_grab = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
@@ -89,6 +119,32 @@ int main(int argc, char *argv[]) {
         case SDLK_q:
           running = false;
           break;
+
+        case SDLK_o: {
+
+          nfdchar_t *path = open_dialog();
+          if (path) {
+
+            Image *next = image_load(renderer, path);
+            if (next) {
+
+              image_free(img);
+              img = next;
+
+              panning = false;
+              SDL_SetCursor(cursor_arrow);
+
+              char *filename = strrchr(path, '/');
+              filename++;
+
+              char title[512];
+              snprintf(title, sizeof(title), "gview - %s", filename);
+              SDL_SetWindowTitle(window, title);
+              view_fit(&vs, img);
+            }
+            NFD_FreePathU8(path);
+          }
+        } break;
 
         case SDLK_PLUS:
         case SDLK_EQUALS:
@@ -161,6 +217,7 @@ int main(int argc, char *argv[]) {
   image_free(img);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
+  NFD_Quit();
   SDL_Quit();
 
   return 0;
