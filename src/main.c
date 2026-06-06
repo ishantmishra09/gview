@@ -63,9 +63,15 @@ int main(int argc, char *argv[]) {
   ViewState vs = {.win_w = WINDOW_WIDTH, .win_h = WINDOW_HEIGHT};
   view_fit(&vs, img);
 
+  SDL_Cursor *cursor_arrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+  SDL_Cursor *cursor_grab = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+
+  bool panning = false;
+  int pan_start_y = 0;
+  float pan_orig_y = 0;
+
   bool running = true;
   SDL_Event event;
-
   while (running) {
 
     while (SDL_PollEvent(&event)) {
@@ -74,15 +80,6 @@ int main(int argc, char *argv[]) {
 
       case SDL_QUIT:
         running = false;
-        break;
-
-      case SDL_WINDOWEVENT:
-        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-
-          vs.win_w = event.window.data1;
-          vs.win_h = event.window.data2;
-          view_fit(&vs, img);
-        }
         break;
 
       case SDL_KEYDOWN:
@@ -96,22 +93,58 @@ int main(int argc, char *argv[]) {
         case SDLK_PLUS:
         case SDLK_EQUALS:
         case SDLK_KP_PLUS:
-          view_zoom(&vs, ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+          view_zoom(&vs, img, ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
           break;
 
         case SDLK_MINUS:
         case SDLK_KP_MINUS:
-          view_zoom(&vs, 1.0f / ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+          view_zoom(&vs, img, 1.0f / ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
           break;
         }
         break;
 
       case SDL_MOUSEWHEEL: {
         if (event.wheel.y > 0)
-          view_zoom(&vs, ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+          view_zoom(&vs, img, ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
         else if (event.wheel.y < 0)
-          view_zoom(&vs, 1.0f / ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
+          view_zoom(&vs, img, 1.0f / ZOOM_STEP, vs.win_w / 2, vs.win_h / 2);
       } break;
+
+      case SDL_MOUSEBUTTONDOWN:
+        if (event.button.button == SDL_BUTTON_LEFT && view_is_zoomed(&vs)) {
+
+          panning = true;
+          pan_start_y = event.button.y;
+          pan_orig_y = vs.offset_y;
+          SDL_SetCursor(cursor_grab);
+        }
+        break;
+
+      case SDL_MOUSEBUTTONUP:
+        if (event.button.button == SDL_BUTTON_LEFT && panning) {
+
+          panning = false;
+          SDL_SetCursor(cursor_arrow);
+        }
+        break;
+
+      case SDL_MOUSEMOTION:
+        if (panning) {
+
+          vs.offset_y = pan_orig_y + (event.motion.y - pan_start_y);
+
+          view_clamp(&vs, img);
+        }
+        break;
+
+      case SDL_WINDOWEVENT:
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+
+          vs.win_w = event.window.data1;
+          vs.win_h = event.window.data2;
+          view_fit(&vs, img);
+        }
+        break;
       }
     }
 
@@ -123,6 +156,8 @@ int main(int argc, char *argv[]) {
     SDL_RenderPresent(renderer);
   }
 
+  SDL_FreeCursor(cursor_arrow);
+  SDL_FreeCursor(cursor_grab);
   image_free(img);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
