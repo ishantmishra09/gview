@@ -1,3 +1,7 @@
+/*
+ * viewer.c - Zoom, pan, clamp and render logic
+ */
+
 #include "viewer.h"
 #include <math.h>
 
@@ -5,11 +9,15 @@
 #define ZOOM_MAX 23.0f
 #define ZOOM_FIT_EPSILON 0.001f
 
+/* Fits the image inside the window, maintaining aspect ratio, the centres it.
+ */
 void view_fit(ViewState *vs, const Image *img) {
 
   float scale_x = (float)vs->win_w / (float)img->width;
   float scale_y = (float)vs->win_h / (float)img->height;
-  vs->scale = fminf(scale_x, scale_y);
+  vs->scale =
+      fminf(scale_x,
+            scale_y); /* use the smaller axis so the whole image is visible */
   vs->fit_scale = vs->scale;
 
   float disp_w = img->width * vs->scale;
@@ -18,6 +26,13 @@ void view_fit(ViewState *vs, const Image *img) {
   vs->offset_y = (vs->win_h - disp_h) / 2.0f;
 }
 
+/*
+ * Zooms by `factor` around the given pivot point.
+ *
+ * The pivot stays fixed by adjusting the offset:
+ *  new_offset = pivot - ratio * ( pivot - old_offset )
+ * where ratio = new_scale / old_scale.
+ */
 void view_zoom(ViewState *vs, const Image *img, float factor, int pivot_x,
                int pivot_y) {
 
@@ -35,11 +50,19 @@ void view_zoom(ViewState *vs, const Image *img, float factor, int pivot_x,
   view_clamp(vs, img);
 }
 
+/* Returns true when the current scale is meaningfully above the fit scale. */
 bool view_is_zoomed(const ViewState *vs) {
 
   return vs->scale > vs->fit_scale + ZOOM_FIT_EPSILON;
 }
 
+/*
+ * Keeps the image inside the viewport.
+ *
+ * Two cases per axis:
+ *  - Image smaller then window -> centre it ( no panning allowed ).
+ *  - Image larger than window  -> clamp offset so no blank border appears.
+ */
 void view_clamp(ViewState *vs, const Image *img) {
 
   float disp_w = img->width * vs->scale;
@@ -72,15 +95,16 @@ void view_clamp(ViewState *vs, const Image *img) {
   }
 }
 
+/* Draws the image at the position and size defined by ViewState. */
 void view_render(SDL_Renderer *renderer, const Image *img,
                  const ViewState *vs) {
 
-  SDL_Rect dst = (SDL_Rect){
-      .x = (int)vs->offset_x,
-      .y = (int)vs->offset_y,
-      .w = (int)(img->width * vs->scale),
-      .h = (int)(img->height * vs->scale),
+  SDL_FRect dst = (SDL_FRect){
+      .x = vs->offset_x,
+      .y = vs->offset_y,
+      .w = img->width * vs->scale,
+      .h = img->height * vs->scale,
   };
 
-  SDL_RenderCopy(renderer, img->texture, NULL, &dst);
+  SDL_RenderCopyF(renderer, img->texture, NULL, &dst);
 }

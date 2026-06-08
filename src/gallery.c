@@ -1,3 +1,7 @@
+/*
+ * gallery.c - Directory scanning and sequential image navigation
+ */
+
 #define _GNU_SOURCE
 #include "gallery.h"
 #include "src/app.h"
@@ -6,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Returns true if the filename's extension is a supported image format. */
 static bool is_image_file(const char *name) {
 
   const char *ext = strrchr(name, '.');
@@ -21,6 +26,7 @@ static bool is_image_file(const char *name) {
          !strcasecmp(ext, "ppm") || !strcasecmp(ext, "tiff");
 }
 
+/* Frees all heap-allocated path strings and resets the gallery to empty. */
 void gallery_clear(App *app) {
 
   for (int i = 0; i < app->gallery_count; i++)
@@ -35,6 +41,15 @@ static int cmp_string(const void *a, const void *b) {
   return strcmp(*(char **)a, *(char **)b);
 }
 
+/*
+ * Builds the gallery from the directory that contains `current_file`.
+ *
+ * Steps:
+ *  1. Strip the filename to get the directory path.
+ *  2. Read every entry - keep only those with supported image extensions.
+ *  3. Sort alphabetically so arrow-key navigation feels natural.
+ *  4. Find `current_file` in the sorted list and store its index.
+ */
 bool gallery_build(App *app, const char *current_file) {
 
   gallery_clear(app);
@@ -82,6 +97,7 @@ bool gallery_build(App *app, const char *current_file) {
 
   qsort(app->gallery, app->gallery_count, sizeof(char *), cmp_string);
 
+  /* Locate the currently open file so next/prev work from the right position */
   for (int i = 0; i < app->gallery_count; i++) {
 
     if (!strcmp(app->gallery[i], current_file)) {
@@ -94,6 +110,7 @@ bool gallery_build(App *app, const char *current_file) {
   return app->gallery_count > 0;
 }
 
+/* Loads the next image in the sorted list, wrapping from last to first. */
 bool gallery_next(App *app) {
 
   if (app->gallery_count <= 1)
@@ -107,6 +124,7 @@ bool gallery_next(App *app) {
   return app_load_image(app, app->gallery[app->current_index]);
 }
 
+/* Loads the previous image in the sorted list, wrapping from last to first. */
 bool gallery_prev(App *app) {
 
   if (app->gallery_count <= 1)

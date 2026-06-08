@@ -1,3 +1,16 @@
+/*
+ * events.c - Keyboard, mouse, and window event handling
+ *
+ * Keybindings:
+ *  Q / ESCAPE      Quit
+ *  O               Open file dialog
+ *  F               Fit image to window
+ *  Left / Right    Previous / next image in gallery
+ *  + / - (or KP)   Zoom in / out ( centered on window )
+ *  Mouse wheel     Zoom in / out
+ *  Left drag       Pan ( only when zoomed in )
+ */
+
 #include "events.h"
 #include "app.h"
 #include "gallery.h"
@@ -6,7 +19,7 @@
 
 #include <nfd.h>
 
-#define ZOOM_STEP 1.1f
+#define ZOOM_STEP 1.1f /* 10% per zoom step */
 
 void handle_event(App *app, SDL_Event *event) {
 
@@ -30,7 +43,7 @@ void handle_event(App *app, SDL_Event *event) {
       if (path) {
 
         app_load_image(app, path);
-        gallery_build(app, path);
+        gallery_build(app, path); /* rebuild gallery for the new directory */
 
         NFD_FreePathU8(path);
       }
@@ -80,7 +93,8 @@ void handle_event(App *app, SDL_Event *event) {
 
   case SDL_MOUSEWHEEL: {
     if (app->img) {
-
+      /* Zoom towards the window centre; a mouse-position pivot could be added
+       * later */
       if (event->wheel.y > 0)
         view_zoom(&app->view, app->img, ZOOM_STEP, app->view.win_w / 2,
                   app->view.win_h / 2);
@@ -91,19 +105,17 @@ void handle_event(App *app, SDL_Event *event) {
   } break;
 
   case SDL_MOUSEBUTTONDOWN:
-    if (app->img) {
 
-      if (event->button.button == SDL_BUTTON_LEFT &&
-          view_is_zoomed(&app->view)) {
+    if (app->img && event->button.button == SDL_BUTTON_LEFT &&
+        view_is_zoomed(&app->view)) {
 
-        app->panning = true;
-        app->pan_start_y = event->button.y;
-        app->pan_orig_y = app->view.offset_y;
-        app->pan_start_x = event->button.x;
-        app->pan_orig_x = app->view.offset_x;
+      app->panning = true;
+      app->pan_start_y = event->button.y;
+      app->pan_orig_y = app->view.offset_y;
+      app->pan_start_x = event->button.x;
+      app->pan_orig_x = app->view.offset_x;
 
-        SDL_SetCursor(app->cursor_grab);
-      }
+      SDL_SetCursor(app->cursor_grab);
     }
     break;
 
@@ -121,10 +133,11 @@ void handle_event(App *app, SDL_Event *event) {
   case SDL_MOUSEMOTION:
     if (app->panning && app->img) {
 
-      app->view.offset_y =
-          app->pan_orig_y + (event->motion.y - app->pan_start_y);
+      /* Translate by the delta from where the drag started */
       app->view.offset_x =
           app->pan_orig_x + (event->motion.x - app->pan_start_x);
+      app->view.offset_y =
+          app->pan_orig_y + (event->motion.y - app->pan_start_y);
 
       view_clamp(&app->view, app->img);
     }
@@ -143,10 +156,11 @@ void handle_event(App *app, SDL_Event *event) {
       if (app->img) {
         if (!view_is_zoomed(&app->view)) {
 
-          view_fit(&app->view, app->img);
+          view_fit(&app->view, app->img); /* re-fit when not zoomed in+ */
         } else {
 
-          view_clamp(&app->view, app->img);
+          view_clamp(&app->view,
+                     app->img); /* keep image in bounds when zoomed in */
         }
       }
     }
