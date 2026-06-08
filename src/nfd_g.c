@@ -7,7 +7,7 @@ nfdchar_t *open_dialog(void) {
 
   nfdchar_t *outPath = NULL;
 
-  nfdfilteritem_t filters[] = {{"Images", "png,jpg,jpeg,bmp,ppm"}};
+  nfdfilteritem_t filters[] = {{"Images", "png,jpg,jpeg,bmp,ppm,webp,tif,tiff"}};
 
   nfdresult_t result = NFD_OpenDialogU8(&outPath, filters, 1, NULL);
   if (result == NFD_OKAY) {
