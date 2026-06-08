@@ -1,3 +1,10 @@
+/*
+ * main.c - Entry point
+ *
+ * Initialises the application, runs the main event/render loop, and performs
+ * shutdown cleanup before exit.
+ */
+
 #include "app.h"
 #include "events.h"
 

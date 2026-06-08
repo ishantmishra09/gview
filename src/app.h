@@ -1,13 +1,20 @@
+/*
+ * app.h - Central application state
+ *
+ * Defines the App struct that is passed through the entire program.
+ * Every subsytem ( viewer, gallery, events ) reads from or writes to this.
+ */
+
 #pragma once
 
 #include <SDL2/SDL.h>
-#include <stdbool.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "image.h"
 #include "viewer.h"
 
-#define MAX_GALLERY_FILES 4096
+#define MAX_GALLERY_FILES 1024
 
 typedef struct {
   SDL_Window *window;
@@ -16,17 +23,20 @@ typedef struct {
   SDL_Cursor *cursor_arrow;
   SDL_Cursor *cursor_grab;
 
-  Image *img;
+  Image *img; /* currently displayed image, NULL if none */
   ViewState view;
 
   bool running;
   bool panning;
 
+  /* Anchor points recorded on mouse-down, used to compute drag delta */
   int pan_start_y;
-  float pan_orig_y;
   int pan_start_x;
+
+  float pan_orig_y;
   float pan_orig_x;
 
+  /* Sorted list of image paths in the same directory as the open file */
   char *gallery[MAX_GALLERY_FILES];
   int gallery_count;
   int current_index;

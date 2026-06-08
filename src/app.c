@@ -1,3 +1,7 @@
+/*
+ * app.c - Application lifecycle ( init, render, shutdown ) and image loading
+ */
+
 #include "app.h"
 #include "gallery.h"
 #include "nfd_g.h"
@@ -25,6 +29,11 @@ static void set_window_title(App *app, const char *path) {
   SDL_SetWindowTitle(app->window, title);
 }
 
+/*
+ * Loads an image from disk, replaces the current one, resets the view to
+ * fit-to-window, and updated title bar.
+ * Returns false is the image could not be loaded ( current image is kept )
+ */
 bool app_load_image(App *app, const char *path) {
 
   Image *next = image_load(app->renderer, path);
@@ -79,6 +88,8 @@ bool app_init(App *app, int argc, char **argv) {
     fprintf(stderr, "SDL_CreateRenderer error: %s\n", SDL_GetError());
     return false;
   }
+
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"); /* 1 ( bilinear -> smooth) */
 
   app->view.win_w = WINDOW_WIDTH;
   app->view.win_h = WINDOW_HEIGHT;
