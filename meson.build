@@ -16,7 +16,15 @@ m_dep = cc.find_library('m', required: false)
 
 executable(
   'gview',
-  sources: ['src/main.c', 'src/image.c', 'src/viewer.c', 'src/nfd_g.c'],
+  sources: [
+    'src/main.c',
+    'src/image.c',
+    'src/viewer.c',
+    'src/nfd_g.c',
+    'src/app.c',
+    'src/events.c',
+    'src/gallery.c',
+  ],
   include_directories: include_directories('vendor'),
   dependencies: [sdl2_dep, m_dep, nfd_dep],
   install: true,
