@@ -8,24 +8,13 @@ project(
   ],
 )
 
-cc = meson.get_compiler('c')
-
-sdl2_dep = dependency('sdl2')
-nfd_dep = dependency('nfd')
-m_dep = cc.find_library('m', required: false)
+gtk_dep = dependency('gtk4')
 
 executable(
   'gview',
   sources: [
     'src/main.c',
-    'src/image.c',
-    'src/viewer.c',
-    'src/nfd_g.c',
-    'src/app.c',
-    'src/events.c',
-    'src/gallery.c',
   ],
-  include_directories: include_directories('vendor'),
-  dependencies: [sdl2_dep, m_dep, nfd_dep],
+  dependencies: [gtk_dep],
   install: true,
 )
