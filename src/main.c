@@ -1,33 +1,35 @@
-/*
- * main.c - Entry point
- *
- * Initialises the application, runs the main event/render loop, and performs
- * shutdown cleanup before exit.
- */
+#include <gtk/gtk.h>
 
-#include "app.h"
-#include "events.h"
+#define WINDOW_TITLE "gview"
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
 
-int main(int argc, char *argv[]) {
+static void activate(GtkApplication *app, gpointer user_data) {
+  (void)user_data;
 
-  App app = {0};
+  GtkWidget *window;
 
-  if (!app_init(&app, argc, argv))
-    return 1;
+  g_object_set(gtk_settings_get_default(), "gtk-application-prefer-dark-theme",
+               TRUE, NULL);
 
-  SDL_Event event;
+  window = gtk_application_window_new(app);
+  gtk_window_set_title(GTK_WINDOW(window), WINDOW_TITLE);
+  gtk_window_set_default_size(GTK_WINDOW(window), WINDOW_WIDTH, WINDOW_HEIGHT);
 
-  while (app.running) {
+  gtk_window_present(GTK_WINDOW(window));
+}
 
-    while (SDL_PollEvent(&event)) {
+int main(int argc, char **argv) {
+  GtkApplication *app;
+  int status;
 
-      handle_event(&app, &event);
-    }
+  app = gtk_application_new("dev.gview.app", G_APPLICATION_DEFAULT_FLAGS);
 
-    app_render(&app);
-  }
+  g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
 
-  app_shutdown(&app);
+  status = g_application_run(G_APPLICATION(app), argc, argv);
 
-  return 0;
+  g_object_unref(app);
+
+  return status;
 }
